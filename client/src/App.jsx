@@ -4,16 +4,14 @@ import './App.css';
 function App() {
   const [movies, setMovies] = useState([]);
   
-  // 1. NEUER STATE für das Formular
-  const [title, setTitle] = useState('');
-  const [tmdbId, setTmdbId] = useState('');
-  const [posterPath, setPosterPath] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
 
   useEffect(() => {
-    fetchMovies();
+    fetchWatchlist();
   }, []);
 
-  const fetchMovies = async () => {
+  const fetchWatchlist = async () => {
     try {
       const response = await fetch('http://localhost:5000/movies');
       const data = await response.json();
@@ -23,112 +21,118 @@ function App() {
     }
   };
 
-  // 2. NEUE FUNKTION: Film hinzufügen
-  const handleSubmit = async (e) => {
-    e.preventDefault(); // Verhindert, dass die Seite neu lädt
+  const searchMovies = async (e) => {
+    e.preventDefault();
+    if (!searchQuery) return;
 
+    try {
+      const response = await fetch(`http://localhost:5000/search?query=${searchQuery}`);
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error("Fehler bei der Suche:", error);
+    }
+  };
+
+  const addMovie = async (movieFromTmdb) => {
     try {
       const response = await fetch('http://localhost:5000/movies', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Wir schicken die Daten als JSON-String an das Backend
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          title: title, 
-          tmdb_id: tmdbId,
-          poster_path: posterPath 
+          title: movieFromTmdb.title, 
+          tmdb_id: movieFromTmdb.id,
+          poster_path: movieFromTmdb.poster_path 
         }),
       });
 
       if (response.ok) {
-        // Wenn erfolgreich: Formular leeren und Liste neu laden
-        setTitle('');
-        setTmdbId('');
-        setPosterPath('');
-        fetchMovies(); 
-        alert('Film hinzugefügt! 🍿');
+        setSearchResults([]);
+        setSearchQuery('');
+        fetchWatchlist();
       } else {
-        const errorData = await response.json();
-        alert('Fehler: ' + errorData.error);
+        const err = await response.json();
+        alert(err.error || 'Fehler beim Speichern');
       }
     } catch (error) {
-      console.error("Fehler beim Speichern:", error);
+      console.error("Fehler beim Hinzufügen:", error);
     }
   };
 
-  // Funktion zum Löschen (Bonus)
   const deleteMovie = async (id) => {
-    if(!confirm("Wirklich löschen?")) return;
-    
-    try {
-      await fetch(`http://localhost:5000/movies/${id}`, { method: 'DELETE' });
-      fetchMovies(); // Liste aktualisieren
-    } catch (error) {
-      console.error("Fehler beim Löschen:", error);
-    }
+    if(!confirm("Löschen?")) return;
+    await fetch(`http://localhost:5000/movies/${id}`, { method: 'DELETE' });
+    fetchWatchlist();
   }
 
   return (
     <div className="app-container">
-      <h1>ScreenStack Watchlist 🎬</h1>
-
-      {/* 3. DAS FORMULAR */}
-      <div className="card add-movie-form">
-        <h2>Neuen Film hinzufügen</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <input
-              type="text"
-              placeholder="Filmtitel (z.B. Inception)"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input
-              type="number"
-              placeholder="TMDb ID (z.B. 27205)"
-              value={tmdbId}
-              onChange={(e) => setTmdbId(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input
-              type="text"
-              placeholder="Poster URL (optional)"
-              value={posterPath}
-              onChange={(e) => setPosterPath(e.target.value)}
-            />
-          </div>
-          <button type="submit" className="btn-primary">Speichern</button>
-        </form>
+      <div class="logo-container">
+        <img src="src/assets/logo.svg" alt="ScreenStack Logo" class="logo-img" />
+        <h1>ScreenStack</h1>
       </div>
 
-      <hr />
+      {/* Searchbar */}
+      <div className="card">
+        <h2>Film suchen</h2>
+        <form onSubmit={searchMovies} style={{ display: 'flex', gap: '10px' }}>
+          <input
+            type="text"
+            placeholder="Titel suchen (z.B. Interstellar)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button type="submit" className="btn-primary">Suchen</button>
+        </form>
 
-      <div className="movie-list">
-        <h2>Meine Liste</h2>
-        {movies.length === 0 ? (
-          <p>Noch keine Filme. Füge oben einen hinzu!</p>
-        ) : (
-          <ul className="movie-grid">
-            {movies.map((movie) => (
-              <li key={movie.id} className="movie-card">
-                <strong>{movie.title}</strong> (ID: {movie.tmdb_id})
-                <br />
-                <button 
-                  onClick={() => deleteMovie(movie.id)}
-                  style={{background: 'red', color: 'white', border: 'none', marginTop: '5px', cursor: 'pointer'}}
-                >
-                  Löschen
-                </button>
+        {/* Search results */}
+        {searchResults.length > 0 && (
+          <ul className="search-results">
+            {searchResults.map((result) => (
+              <li key={result.id} className="search-item">
+                {result.poster_path && (
+                  <img 
+                    src={`https://image.tmdb.org/t/p/w92${result.poster_path}`} 
+                    alt={result.title} 
+                  />
+                )}
+                <div>
+                  <strong>{result.title}</strong> ({result.release_date?.substr(0, 4)})
+                  <br />
+                  <button 
+                    onClick={() => addMovie(result)}
+                    className="btn-add"
+                  >
+                    + Zur Watchlist
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         )}
+      </div>
+
+      <hr />
+
+      {/* Watchlist */}
+      <div className="movie-list">
+        <h2>Meine Watchlist ({movies.length})</h2>
+        <div className="movie-grid">
+          {movies.map((movie) => (
+            <div key={movie.id} className="movie-card">
+              {movie.poster_path && (
+                 <img 
+                   src={`https://image.tmdb.org/t/p/w154${movie.poster_path}`} 
+                   alt={movie.title} 
+                 />
+              )}
+              <div className="movie-info">
+                <h3>{movie.title}</h3>
+                <button onClick={() => deleteMovie(movie.id)} className="btn-delete">Löschen</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
