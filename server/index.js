@@ -89,6 +89,28 @@ app.delete('/movies/:id', async (req, res) => {
     res.status(500).send('Server Fehler');
   }
 });
+
+// TMDb API
+app.get('/search', async (req, res) => {
+  try {
+    const { query } = req.query;
+    const apiKey = process.env.TMDB_API_KEY;
+
+    if (!query) {
+      return res.status(400).json({ error: 'Suchbegriff fehlt' });
+    }
+
+    const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=de-DE`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+
+    res.json(data.results);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Fehler bei der Kommunikation mit TMDb' });
+  }
+});
     
 app.listen(port, () => {
   console.log(`Server läuft auf Port ${port}`);
