@@ -35,6 +35,61 @@ app.get('/db-check', async (req, res) => {
   }
 });
 
+app.post('/movies', async (req, res) => {
+  try {
+    const { tmdb_id, title, poster_path } = req.body;
+
+    if (!tmdb_id || !title) {
+      return res.status(400).json({ status: 'error', message: 'tmdb_id und title sind erforderlich' });
+    }
+    const query = `
+      INSERT INTO movies (tmdb_id, title, poster_path)
+      VALUES ($1, $2, $3)
+      RETURNING *;
+    `;
+
+    const newMovie = await pool.query(query, [tmdb_id, title, poster_path]);
+
+    res.json(newMovie.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Film ist schon in der Liste!'});
+    }
+    res.status(500).send('Server fehler');
+  }
+});
+
+app.get('/movies', async (req, res) => {
+  try {
+    const allMovies = await pool.query('SELECT * FROM movies ORDER BY created_at DESC');
+    
+    res.json(allMovies.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Fehler');
+  }
+});
+
+app.delete('/movies/:id', async (req, res) => {
+  try {
+    const { id } = req.params; // Die ID kommt aus der URL (z.B. /movies/5)
+    
+    const deleteMovie = await pool.query('DELETE FROM movies WHERE id = $1', [id]);
+    
+    // Check how many lines where deleted
+    if (deleteMovie.rowCount === 0) {
+      return res.status(404).json({ message: 'Film nicht gefunden oder existiert nicht.' });
+    }
+
+    res.json({ message: 'Film wurde gelöscht!' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Fehler');
+  }
+});
+    
 app.listen(port, () => {
   console.log(`Server läuft auf Port ${port}`);
 });
