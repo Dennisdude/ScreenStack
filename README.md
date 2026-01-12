@@ -1,6 +1,6 @@
 # ScreenStack
 
-A modern movie watchlist application that allows users to search for movies using The Movie Database (TMDb) API and maintain their personal collection of films to watch.
+A movie watchlist application that allows users to search for movies using The Movie Database (TMDb) API and maintain their personal collection of films to watch.
 
 ## Features
 
