@@ -1,1 +1,4 @@
-node_modules/
+InfoText.txt
+
+server/node_modules/
+server/.env
