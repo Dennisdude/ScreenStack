@@ -100,7 +100,7 @@ app.get('/search', async (req, res) => {
       return res.status(400).json({ error: 'Suchbegriff fehlt' });
     }
 
-    const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=de-DE`;
+    const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}`;
     
     const response = await fetch(url);
     const data = await response.json();
