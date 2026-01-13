@@ -38,7 +38,7 @@ app.get('/db-check', async (req, res) => {
 app.post('/movies', async (req, res) => {
   try {
     const { tmdb_id, title, poster_path, media_type = 'movie' } = req.body;
-
+    
     if (!tmdb_id || !title) {
       return res.status(400).json({ status: 'error', message: 'tmdb_id und title sind erforderlich' });
     }
@@ -82,7 +82,7 @@ app.delete('/movies/:id', async (req, res) => {
     if (deleteMovie.rowCount === 0) {
       return res.status(404).json({ message: 'Film nicht gefunden oder existiert nicht.' });
     }
-
+    
     res.json({ message: 'Film wurde gelöscht!' });
   } catch (err) {
     console.error(err.message);
@@ -99,19 +99,34 @@ app.get('/search', async (req, res) => {
     if (!query) {
       return res.status(400).json({ error: 'Suchbegriff fehlt' });
     }
-
-    const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}`;
+    
+    const url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(query)}`;
     
     const response = await fetch(url);
     const data = await response.json();
-
+    
     res.json(data.results);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Fehler bei der Kommunikation mit TMDb' });
   }
 });
-    
+
+app.get('/trending', async (req, res) => {
+  try {
+    const apiKey = process.env.TMDB_API_KEY;
+    const url = `https://api.themoviedb.org/3/trending/all/week?api_key=${apiKey}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    res.json(data.results);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Fehler bei TMDb Trending' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server läuft auf Port ${port}`);
 });
