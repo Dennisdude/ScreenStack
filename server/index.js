@@ -37,18 +37,18 @@ app.get('/db-check', async (req, res) => {
 
 app.post('/movies', async (req, res) => {
   try {
-    const { tmdb_id, title, poster_path } = req.body;
+    const { tmdb_id, title, poster_path, media_type = 'movie' } = req.body;
 
     if (!tmdb_id || !title) {
       return res.status(400).json({ status: 'error', message: 'tmdb_id und title sind erforderlich' });
     }
     const query = `
-      INSERT INTO movies (tmdb_id, title, poster_path)
-      VALUES ($1, $2, $3)
+      INSERT INTO movies (tmdb_id, title, poster_path, media_type)
+      VALUES ($1, $2, $3, $4)
       RETURNING *;
     `;
 
-    const newMovie = await pool.query(query, [tmdb_id, title, poster_path]);
+    const newMovie = await pool.query(query, [tmdb_id, title, poster_path, media_type]);
 
     res.json(newMovie.rows[0]);
   } catch (err) {
